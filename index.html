@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Сюрприз!</title>
+    <title>СЮРПРИЗ!!!</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -15,6 +15,7 @@
             font-family: Arial, sans-serif;
             flex-direction: column;
             padding: 16px;
+            user-select: none;
         }
         .container { max-width: 600px; width: 100%; text-align: center; }
         .image-wrapper {
@@ -51,6 +52,8 @@
             width: 100%;
             max-width: 400px;
             margin-top: 20px;
+            position: relative;
+            z-index: 10;
         }
         .btn:hover { background: #218838; }
         .btn:active { transform: scale(0.96); }
@@ -62,52 +65,202 @@
             .btn { font-size: 1rem; padding: 14px 20px; }
         }
         .hint { color: #888; margin-top: 12px; font-size: 0.8rem; }
+        
+        /* Затемнение для эффекта */
+        .overlay-effect {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.3);
+            z-index: 5;
+            pointer-events: none;
+        }
+        .overlay-effect.active {
+            display: block;
+            animation: flash 0.5s ease;
+        }
+        @keyframes flash {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Картинка (скрыта до клика) -->
         <div class="image-wrapper" id="imageWrapper">
-            <!-- ⬇️ ТВОЯ КАРТИНКА pavel.jpg -->
             <img src="pavel.jpg" alt="Сюрприз">
         </div>
-
-        <!-- Кнопка-ловушка -->
-        <button class="btn" id="triggerBtn">✅ Нажмите, чтобы подтвердить, что вы не робот</button>
-        <p class="hint">Защита от автоматических действий</p>
+        <button class="btn" id="triggerBtn">🔥 НАЖМИ СЮДА 🔥</button>
+        <p class="hint">Громкость на максимум! 🔊</p>
     </div>
+    
+    <div class="overlay-effect" id="overlayEffect"></div>
 
     <script>
-        const btn = document.getElementById('triggerBtn');
-        const imageWrapper = document.getElementById('imageWrapper');
-
-        // Аудиофайл переименован на латиницу, лежит рядом с HTML
-        const audio = new Audio('ara.mp3');
-        audio.volume = 1.0;
-
-        // Дополнительно: предупреждение, если аудиофайл вообще не загрузился
-        audio.addEventListener('error', function() {
-            console.warn('Не удалось загрузить аудиофайл ara.mp3');
-        });
-
-        let imageShown = false;
-
-        btn.addEventListener('click', function() {
-            // Показываем картинку только один раз
-            if (!imageShown) {
-                imageWrapper.classList.add('show');
-                btn.textContent = '✅ Подтверждено!';
-                btn.classList.add('activated');
-                imageShown = true;
+        (function() {
+            // ===== МАКСИМАЛЬНОЕ УСИЛЕНИЕ ЗВУКА =====
+            const btn = document.getElementById('triggerBtn');
+            const imageWrapper = document.getElementById('imageWrapper');
+            const overlayEffect = document.getElementById('overlayEffect');
+            
+            // СОЗДАЁМ МОЩНЫЙ УСИЛИТЕЛЬ
+            let audioContext = null;
+            let gainNode = null;
+            let audio = null;
+            let isAudioReady = false;
+            
+            function initAudio() {
+                try {
+                    // Создаём аудио контекст с максимальной громкостью
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    audio = new Audio('ara.mp3');
+                    audio.preload = 'auto';
+                    audio.loop = false;
+                    
+                    // УСИЛИТЕЛЬ НА МАКСИМУМ
+                    const track = audioContext.createMediaElementSource(audio);
+                    gainNode = audioContext.createGain();
+                    
+                    // МАКСИМАЛЬНАЯ ГРОМКОСТЬ (2.0 = в 2 раза громче)
+                    // Можно поставить до 3.0, но будет искажение
+                    gainNode.gain.value = 2.5;
+                    
+                    // ДОПОЛНИТЕЛЬНЫЙ БУСТ (эквалайзером)
+                    const bassBoost = audioContext.createBiquadFilter();
+                    bassBoost.type = 'lowshelf';
+                    bassBoost.frequency.value = 200;
+                    bassBoost.gain.value = 10;
+                    
+                    const trebleBoost = audioContext.createBiquadFilter();
+                    trebleBoost.type = 'highshelf';
+                    trebleBoost.frequency.value = 2000;
+                    trebleBoost.gain.value = 8;
+                    
+                    // Подключаем: аудио -> усилитель -> эквалайзеры -> выход
+                    track.connect(gainNode);
+                    gainNode.connect(bassBoost);
+                    bassBoost.connect(trebleBoost);
+                    trebleBoost.connect(audioContext.destination);
+                    
+                    isAudioReady = true;
+                    console.log('✅ Аудио усилено до максимума!');
+                } catch(e) {
+                    console.warn('Ошибка инициализации аудио:', e);
+                    // Фолбэк: обычное аудио
+                    audio = new Audio('ara.mp3');
+                    audio.volume = 1.0;
+                    isAudioReady = true;
+                }
             }
-
-            // При каждом клике пытаемся запустить звук
-            // Это решает проблему с блокировкой автовоспроизведения
-            audio.play().catch(function(error) {
-                alert('⚠️ Нажмите ещё раз, чтобы запустить звук.');
-                console.warn('Ошибка воспроизведения:', error);
+            
+            // ===== ФУНКЦИЯ ЗАПУСКА ЗВУКА (ПЫТАЕТСЯ 5 РАЗ) =====
+            function playSoundWithRetry() {
+                if (!audio) return;
+                
+                let attempts = 0;
+                const maxAttempts = 5;
+                
+                function tryPlay() {
+                    if (!audio) return;
+                    
+                    audio.currentTime = 0; // Перемотка в начало
+                    
+                    // Если есть усилитель - включаем контекст
+                    if (audioContext && audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                    
+                    audio.play().then(() => {
+                        console.log('🔊 Звук включён на полную!');
+                    }).catch((error) => {
+                        attempts++;
+                        if (attempts < maxAttempts) {
+                            console.log(`Попытка ${attempts}/${maxAttempts}...`);
+                            setTimeout(tryPlay, 200);
+                        } else {
+                            // Если звук не играет - просто показываем картинку
+                            console.warn('Звук заблокирован, но картинка показана');
+                            // МОЖНО ДОБАВИТЬ ВИБРАЦИЮ НА ТЕЛЕФОНЕ
+                            if (navigator.vibrate) {
+                                navigator.vibrate(500);
+                            }
+                        }
+                    });
+                }
+                
+                tryPlay();
+            }
+            
+            // ===== ОБРАБОТЧИК КЛИКА =====
+            let imageShown = false;
+            
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Инициализируем аудио при первом клике
+                if (!isAudioReady) {
+                    initAudio();
+                }
+                
+                // Показываем картинку
+                if (!imageShown) {
+                    imageWrapper.classList.add('show');
+                    btn.textContent = '💥 БАХ!';
+                    btn.classList.add('activated');
+                    imageShown = true;
+                    
+                    // Эффект вспышки
+                    overlayEffect.classList.add('active');
+                    setTimeout(() => {
+                        overlayEffect.classList.remove('active');
+                    }, 500);
+                }
+                
+                // ЗАПУСКАЕМ ЗВУК С ПОВТОРАМИ
+                playSoundWithRetry();
+                
+                // ДОПОЛНИТЕЛЬНО: пробуем запустить ещё раз через 0.5 сек
+                setTimeout(() => {
+                    if (audioContext && audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                    if (audio) {
+                        audio.play().catch(() => {});
+                    }
+                }, 500);
+                
+                // И ЕЩЁ РАЗ через 1 секунду (для надёжности)
+                setTimeout(() => {
+                    if (audio) {
+                        audio.play().catch(() => {});
+                    }
+                }, 1000);
             });
-        });
+            
+            // ===== АВТОЗАПУСК ПРИ ЗАГРУЗКЕ (пытаемся) =====
+            window.addEventListener('load', function() {
+                // Пытаемся инициализировать аудио сразу
+                setTimeout(() => {
+                    initAudio();
+                }, 100);
+            });
+            
+            // ===== НА ВСЯКИЙ СЛУЧАЙ: клик по всему экрану =====
+            document.addEventListener('click', function() {
+                if (audioContext && audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+                if (audio && !imageShown) {
+                    // Не включаем звук до нажатия кнопки, но готовим контекст
+                }
+            });
+            
+            console.log('🚀 МАКСИМАЛЬНАЯ ГРОМКОСТЬ АКТИВИРОВАНА!');
+            console.log('🔊 Усиление: 2.5x + эквалайзер');
+            
+        })();
     </script>
 </body>
 </html>
