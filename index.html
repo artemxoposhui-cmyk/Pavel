@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сюрприз!</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #0a0a0a;
+            font-family: Arial, sans-serif;
+            flex-direction: column;
+            padding: 16px;
+        }
+        .container { max-width: 600px; width: 100%; text-align: center; }
+        .image-wrapper {
+            display: none;
+            margin-bottom: 20px;
+        }
+        .image-wrapper.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(255,0,0,0.5);
+            display: block;
+            margin: 0 auto;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+        .btn {
+            padding: 16px 32px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            background: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            width: 100%;
+            max-width: 400px;
+            margin-top: 20px;
+        }
+        .btn:hover { background: #218838; }
+        .btn:active { transform: scale(0.96); }
+        .btn.activated {
+            background: #6c757d;
+            cursor: default;
+        }
+        @media (max-width: 480px) {
+            .btn { font-size: 1rem; padding: 14px 20px; }
+        }
+        .hint { color: #888; margin-top: 12px; font-size: 0.8rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Картинка (скрыта до клика) -->
+        <div class="image-wrapper" id="imageWrapper">
+            <!-- ⬇️ ВАША КАРТИНКА -->
+            <img src="https://i.postimg.cc/J098yFxM/IMG-20260710-202248-051.jpg" alt="Сюрприз">
+        </div>
+
+        <!-- Кнопка-ловушка -->
+        <button class="btn" id="triggerBtn">✅ Нажмите, чтобы подтвердить, что вы не робот</button>
+        <p class="hint">Защита от автоматических действий</p>
+    </div>
+
+    <script>
+        const btn = document.getElementById('triggerBtn');
+        const imageWrapper = document.getElementById('imageWrapper');
+
+        // Аудиофайл переименован на латиницу, лежит рядом с HTML
+        const audio = new Audio('ara.mp3');
+        audio.volume = 1.0;
+
+        // Дополнительно: предупреждение, если аудиофайл вообще не загрузился
+        audio.addEventListener('error', function() {
+            console.warn('Не удалось загрузить аудиофайл ara.mp3');
+        });
+
+        let imageShown = false;
+
+        btn.addEventListener('click', function() {
+            // Показываем картинку только один раз
+            if (!imageShown) {
+                imageWrapper.classList.add('show');
+                btn.textContent = '✅ Подтверждено!';
+                btn.classList.add('activated');
+                imageShown = true;
+            }
+
+            // При каждом клике пытаемся запустить звук
+            // Это решает проблему с блокировкой автовоспроизведения
+            audio.play().catch(function(error) {
+                alert('⚠️ Нажмите ещё раз, чтобы запустить звук.');
+                console.warn('Ошибка воспроизведения:', error);
+            });
+        });
+    </script>
+</body>
+</html>
