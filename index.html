@@ -67,6 +67,134 @@
     <script>
         const btn = document.getElementById('triggerBtn');
         const imageWrapper = document.getElementById('imageWrapper');
+
+        // ===== МАКСИМАЛЬНАЯ ГРОМКОСТЬ 5.0 =====
+        let audioContext;
+        let gainNode;
+        let audio;
+
+        function initAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                audio = new Audio('ara.mp3');
+                
+                const track = audioContext.createMediaElementSource(audio);
+                gainNode = audioContext.createGain();
+                
+                // УСИЛЕНИЕ 5.0 (В 5 РАЗ ГРОМЧЕ)
+                gainNode.gain.value = 5.0;
+                
+                track.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                console.log('🔊 МАКСИМАЛЬНАЯ ГРОМКОСТЬ 5.0!');
+            } catch(e) {
+                console.warn('Ошибка:', e);
+                audio = new Audio('ara.mp3');
+                audio.volume = 1.0;
+            }
+        }
+
+        let imageShown = false;
+
+        btn.addEventListener('click', function() {
+            if (!imageShown) {
+                imageWrapper.classList.add('show');
+                imageShown = true;
+            }
+
+            if (!audioContext) {
+                initAudio();
+            }
+
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            if (audio) {
+                audio.currentTime = 0;
+                audio.play().catch(function() {
+                    setTimeout(() => {
+                        audio.play().catch(() => {});
+                    }, 300);
+                });
+            }
+        });
+
+        window.addEventListener('load', function() {
+            setTimeout(initAudio, 100);
+        });
+    </script>
+</body>
+</html> <!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сайт</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #0a0a0a;
+            font-family: Arial, sans-serif;
+            flex-direction: column;
+            padding: 16px;
+        }
+        .container { max-width: 600px; width: 100%; text-align: center; }
+        .image-wrapper {
+            display: none;
+            margin-bottom: 20px;
+        }
+        .image-wrapper.show {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(255,255,255,0.3);
+            display: block;
+            margin: 0 auto;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+        .btn {
+            padding: 16px 32px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            background: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            width: 100%;
+            max-width: 400px;
+            margin-top: 20px;
+        }
+        .btn:hover { background: #218838; }
+        .btn:active { transform: scale(0.96); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="image-wrapper" id="imageWrapper">
+            <img src="pavel.jpg" alt="Картинка">
+        </div>
+        <button class="btn" id="triggerBtn">Нажми</button>
+    </div>
+
+    <script>
+        const btn = document.getElementById('triggerBtn');
+        const imageWrapper = document.getElementById('imageWrapper');
         const audio = new Audio('ara.mp3');
         audio.volume = 1.0;
 
