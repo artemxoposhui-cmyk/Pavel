@@ -54,71 +54,81 @@
         }
         .btn:hover { background: #218838; }
         .btn:active { transform: scale(0.96); }
+        .btn.activated {
+            background: #6c757d;
+            cursor: default;
+        }
+        .hint { color: #888; margin-top: 12px; font-size: 0.8rem; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="image-wrapper" id="imageWrapper">
-            <img src="pavel.jpg" alt="Картинка">
+            <img src="pavel.jpg" alt="Сюрприз">
         </div>
         <button class="btn" id="triggerBtn">Нажми</button>
+        <p class="hint">Защита от автоматических действий</p>
     </div>
 
     <script>
         const btn = document.getElementById('triggerBtn');
         const imageWrapper = document.getElementById('imageWrapper');
 
-        // ===== ПРОСТОЙ И НАДЁЖНЫЙ СПОСОБ =====
-        let audio = null;
-        let imageShown = false;
+        // ===== АУДИО С УСИЛЕНИЕМ =====
+        let audioContext;
+        let gainNode;
+        let audio;
 
-        // Пробуем загрузить звук (сначала mp3, потом m4a)
-        function createAudio() {
-            // Пробуем mp3
-            audio = new Audio('ara.mp3');
-            audio.volume = 1.0;
-            
-            // Если mp3 не грузится - пробуем m4a
-            audio.addEventListener('error', function() {
-                console.log('MP3 не загрузился, пробуем M4A');
-                audio = new Audio('ara.m4a');
+        function initAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                audio = new Audio('ara.mp3');
                 audio.volume = 1.0;
-            });
+                
+                const track = audioContext.createMediaElementSource(audio);
+                gainNode = audioContext.createGain();
+                gainNode.gain.value = 5.0; // УСИЛЕНИЕ
+                
+                track.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                console.log('🔊 Звук с усилением');
+            } catch(e) {
+                console.log('Ошибка:', e);
+                audio = new Audio('ara.mp3');
+                audio.volume = 1.0;
+            }
         }
 
+        let imageShown = false;
+
         btn.addEventListener('click', function() {
-            // Показываем картинку
             if (!imageShown) {
                 imageWrapper.classList.add('show');
+                btn.classList.add('activated');
                 imageShown = true;
             }
 
-            // Создаём аудио при первом клике
             if (!audio) {
-                createAudio();
+                initAudio();
             }
 
-            // Пытаемся включить звук
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
             if (audio) {
                 audio.currentTime = 0;
-                audio.play().then(() => {
-                    console.log('🔊 Звук играет!');
-                }).catch(function(err) {
-                    console.log('Ошибка:', err);
-                    // Если не играет - создаём заново
-                    createAudio();
+                audio.play().catch(function() {
                     setTimeout(() => {
-                        if (audio) {
-                            audio.play().catch(() => {});
-                        }
+                        audio.play().catch(() => {});
                     }, 300);
                 });
             }
         });
 
-        // Подготовка при загрузке
         window.addEventListener('load', function() {
-            setTimeout(createAudio, 500);
+            setTimeout(initAudio, 100);
         });
     </script>
 </body>
