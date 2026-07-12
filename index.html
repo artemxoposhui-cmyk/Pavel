@@ -54,81 +54,33 @@
         }
         .btn:hover { background: #218838; }
         .btn:active { transform: scale(0.96); }
-        .btn.activated {
-            background: #6c757d;
-            cursor: default;
-        }
-        .hint { color: #888; margin-top: 12px; font-size: 0.8rem; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="image-wrapper" id="imageWrapper">
-            <img src="pavel.jpg" alt="Сюрприз">
+            <img src="pavel.jpg" alt="Картинка">
         </div>
         <button class="btn" id="triggerBtn">Нажми</button>
-        <p class="hint">Защита от автоматических действий</p>
     </div>
 
     <script>
         const btn = document.getElementById('triggerBtn');
         const imageWrapper = document.getElementById('imageWrapper');
-
-        // ===== АУДИО С УСИЛЕНИЕМ =====
-        let audioContext;
-        let gainNode;
-        let audio;
-
-        function initAudio() {
-            try {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                audio = new Audio('ara.mp3');
-                audio.volume = 1.0;
-                
-                const track = audioContext.createMediaElementSource(audio);
-                gainNode = audioContext.createGain();
-                gainNode.gain.value = 5.0; // УСИЛЕНИЕ
-                
-                track.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                console.log('🔊 Звук с усилением');
-            } catch(e) {
-                console.log('Ошибка:', e);
-                audio = new Audio('ara.mp3');
-                audio.volume = 1.0;
-            }
-        }
+        const audio = new Audio('ara.mp3');
+        audio.volume = 1.0;
 
         let imageShown = false;
 
         btn.addEventListener('click', function() {
             if (!imageShown) {
                 imageWrapper.classList.add('show');
-                btn.classList.add('activated');
                 imageShown = true;
             }
 
-            if (!audio) {
-                initAudio();
-            }
-
-            if (audioContext && audioContext.state === 'suspended') {
-                audioContext.resume();
-            }
-
-            if (audio) {
-                audio.currentTime = 0;
-                audio.play().catch(function() {
-                    setTimeout(() => {
-                        audio.play().catch(() => {});
-                    }, 300);
-                });
-            }
-        });
-
-        window.addEventListener('load', function() {
-            setTimeout(initAudio, 100);
+            audio.play().catch(function(error) {
+                alert('Нажми ещё раз');
+            });
         });
     </script>
 </body>
