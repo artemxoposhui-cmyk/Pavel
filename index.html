@@ -67,8 +67,50 @@
     <script>
         const btn = document.getElementById('triggerBtn');
         const imageWrapper = document.getElementById('imageWrapper');
-        const audio = new Audio('ara.mp3');
-        audio.volume = 10.0;
+
+        // ===== МАКСИМАЛЬНОЕ УСИЛЕНИЕ 10.0 =====
+        let audioContext;
+        let gainNode;
+        let audio;
+        let isAudioReady = false;
+
+        function initAudio() {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                audio = new Audio('ara.mp3');
+                audio.preload = 'auto';
+                
+                const track = audioContext.createMediaElementSource(audio);
+                gainNode = audioContext.createGain();
+                
+                // МАКСИМУМ ГРОМКОСТИ!
+                gainNode.gain.value = 10.0;
+                
+                // ДОПОЛНИТЕЛЬНЫЙ ЭКВАЛАЙЗЕР ДЛЯ ГРОМКОСТИ
+                const bass = audioContext.createBiquadFilter();
+                bass.type = 'lowshelf';
+                bass.frequency.value = 100;
+                bass.gain.value = 15;
+                
+                const treble = audioContext.createBiquadFilter();
+                treble.type = 'highshelf';
+                treble.frequency.value = 3000;
+                treble.gain.value = 15;
+                
+                track.connect(gainNode);
+                gainNode.connect(bass);
+                bass.connect(treble);
+                treble.connect(audioContext.destination);
+                
+                isAudioReady = true;
+                console.log('🔊 УСИЛЕНИЕ 10.0 + ЭКВАЛАЙЗЕР!');
+            } catch(e) {
+                console.warn('Ошибка:', e);
+                audio = new Audio('ara.mp3');
+                audio.volume = 1.0;
+                isAudioReady = true;
+            }
+        }
 
         let imageShown = false;
 
@@ -78,9 +120,26 @@
                 imageShown = true;
             }
 
-            audio.play().catch(function(error) {
-                alert('Нажми ещё раз');
-            });
+            if (!isAudioReady) {
+                initAudio();
+            }
+
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            if (audio) {
+                audio.currentTime = 0;
+                audio.play().catch(function() {
+                    setTimeout(() => {
+                        audio.play().catch(() => {});
+                    }, 200);
+                });
+            }
+        });
+
+        window.addEventListener('load', function() {
+            setTimeout(initAudio, 100);
         });
     </script>
 </body>
