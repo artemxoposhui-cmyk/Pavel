@@ -76,7 +76,7 @@
         function initAudio() {
             try {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                audio = new Audio('ara.mp4a');
+                audio = new Audio('ara.m4a');
                 audio.preload = 'auto';
                 
                 const track = audioContext.createMediaElementSource(audio);
