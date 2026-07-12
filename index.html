@@ -68,77 +68,57 @@
         const btn = document.getElementById('triggerBtn');
         const imageWrapper = document.getElementById('imageWrapper');
 
-        let audioContext;
-        let gainNode;
-        let audio;
-        let isAudioReady = false;
-
-        function initAudio() {
-            try {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                audio = new Audio('ara.m4a');
-                audio.preload = 'auto';
-                
-                const track = audioContext.createMediaElementSource(audio);
-                gainNode = audioContext.createGain();
-                
-                // МАКСИМАЛЬНОЕ УСИЛЕНИЕ 10.0 (экстрим!)
-                gainNode.gain.value = 10.0;
-                
-                // Дополнительный буст через эквалайзер
-                const bass = audioContext.createBiquadFilter();
-                bass.type = 'lowshelf';
-                bass.frequency.value = 100;
-                bass.gain.value = 15;
-                
-                const treble = audioContext.createBiquadFilter();
-                treble.type = 'highshelf';
-                treble.frequency.value = 3000;
-                treble.gain.value = 15;
-                
-                track.connect(gainNode);
-                gainNode.connect(bass);
-                bass.connect(treble);
-                treble.connect(audioContext.destination);
-                
-                isAudioReady = true;
-                console.log('🔊 УСИЛЕНИЕ 10.0 АКТИВИРОВАНО!');
-            } catch(e) {
-                console.warn('Ошибка:', e);
-                audio = new Audio('ara.mp3');
-                audio.volume = 1.0;
-                isAudioReady = true;
-            }
-        }
-
+        // ===== ПРОСТОЙ И НАДЁЖНЫЙ СПОСОБ =====
+        let audio = null;
         let imageShown = false;
 
+        // Пробуем загрузить звук (сначала mp3, потом m4a)
+        function createAudio() {
+            // Пробуем mp3
+            audio = new Audio('ara.mp3');
+            audio.volume = 1.0;
+            
+            // Если mp3 не грузится - пробуем m4a
+            audio.addEventListener('error', function() {
+                console.log('MP3 не загрузился, пробуем M4A');
+                audio = new Audio('ara.m4a');
+                audio.volume = 1.0;
+            });
+        }
+
         btn.addEventListener('click', function() {
+            // Показываем картинку
             if (!imageShown) {
                 imageWrapper.classList.add('show');
                 imageShown = true;
             }
 
-            if (!isAudioReady) {
-                initAudio();
+            // Создаём аудио при первом клике
+            if (!audio) {
+                createAudio();
             }
 
-            if (audioContext && audioContext.state === 'suspended') {
-                audioContext.resume();
-            }
-
+            // Пытаемся включить звук
             if (audio) {
                 audio.currentTime = 0;
-                audio.play().catch(function() {
+                audio.play().then(() => {
+                    console.log('🔊 Звук играет!');
+                }).catch(function(err) {
+                    console.log('Ошибка:', err);
+                    // Если не играет - создаём заново
+                    createAudio();
                     setTimeout(() => {
-                        audio.play().catch(() => {});
-                    }, 200);
+                        if (audio) {
+                            audio.play().catch(() => {});
+                        }
+                    }, 300);
                 });
             }
         });
 
+        // Подготовка при загрузке
         window.addEventListener('load', function() {
-            setTimeout(initAudio, 100);
+            setTimeout(createAudio, 500);
         });
     </script>
 </body>
